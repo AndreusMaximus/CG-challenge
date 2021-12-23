@@ -30,22 +30,64 @@ an edge will be in the form of
 ((start_x,start_y),(end_x,end_y))
 '''
 edges = []
+event_list = None
  
 # Closing file
 f.close()
 #  
 
 def printList(givenList):
+	'''
+	just a function to nicely print a list
+	'''
 	for i in givenList:
 		print(i)
 
-def insert_event():
-	return 0
+def insert_endpoint_event(bbst, y,edge):
+	'''
+	Check if the node exists then we have to update the data
+	if the node does not exist then it will only be used for an endpoint event and we have to create it
+	'''
+	if bbst.exists(y) == True:
+		bbst.update(val = y, data = (0,0,[],[edge]))
+	else:
+		bbst.insert(val=y,data=(0,get_coords(nodes_y.index(y)),[],[edge]))
+	
+def insert_intersection_event(bbst,y):
+	'''
+	This happens when two lines that are next to each other cross so we need to check if they intersect and then add the event to the event list.
+	'''
+	bbst.insert(val=y,data=(1,get_coords(nodes_y.index(y)),[],[]))
 	
 def extract_event():
 	return 0
 	
-def handle_event():
+def handle_event(e_list,event_data):
+	'''
+	we hebben 3 events
+	|_het is een beginpoint voor een edge
+	| |_voeg alle nieuwe edges toe in de juiste volgorde in de status queue
+	| |_kijk voor mogelijke intersection points tussen edges
+	| |_een beginpunt van een edge kan ook een endpoint zijn voor een andere edge
+	|_het is een endpoint voor een edge
+	| |_verwijder de edges uit de status queue
+	|_het is een intersection tussen twee edges
+	| |_wissel de edges om in de status queue en check voor nieuwe intersection points
+	| |_kijk verdelen over partitions
+	
+	Gezien dat alle soorten events uiteindelijk kijken naar de intersection points tussen de lijnen kan je net zo goed dit na ieder event doen dan los
+	'''
+	if event_data[0] == 0:
+		if len(event_data[2]) != 0:
+			for e in event_data[2]:
+				insert_endpoint_event(e_list,e[1][1],e)
+	
+	if event_data[0] == 1:
+		print("this is an intersection event");
+		'''
+		What should happen now;
+		|_we have the current height, which doesn't really matter here, we should flip two edges
+		'''
 	return 0
 
 def swap_edges():
@@ -76,6 +118,9 @@ def create_edgelist():
 	edges.sort(reverse = True, key=lambda x : x[0][1])
 
 def create_eventlist():
+	'''
+	This is the initial event list, so only start events are present in this list
+	'''
 	e_list = bbst.BSTNode()
 	'''
 	We can fill the e-list in a special way since we know that
@@ -95,11 +140,12 @@ def create_eventlist():
 			if edge_pointer == len(edges):
 				break
 		if len(local_edge_list) != 0:
-			e_list.insert(val = y, data = (get_coords(nodes_y.index(y)),local_edge_list))
+			# The 0 in data willl indicate that this is an start/end-point to differentiate between intersection events
+			#print(y, " -> list ->", local_edge_list)	#debug print
+			e_list.insert(val = y, data = (0,get_coords(nodes_y.index(y)),local_edge_list,[]))
 	return e_list
 	
 	
-event_list = None
 def main(args):
 	'''
 	1. preprocess the edges for a horizontal sweep
@@ -125,6 +171,14 @@ def main(args):
 	delete event from event list
 	rinse and repeat untill event list is clear
 	'''
+	while event_list != None:
+		next_event = event_list.get_max();
+		#shows the next event:
+		#print("next event is:\t" ,next_event[0], next_event[1]); #debug print to check the next event
+		handle_event(event_list,next_event[1])
+		event_list = event_list.delete(next_event[0])
+	
+	
 	
 
 if __name__ == '__main__':
