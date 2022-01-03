@@ -117,3 +117,23 @@ class BSTNode:
 		if self.val is not None:
 			vals.append((self.val,self.data))
 		return vals
+
+def sortedArrayToBST(arr):
+	 
+	if not arr:
+		return None
+ 
+	# find middle
+	mid = int((len(arr)) / 2)
+	 
+	# make the middle element the root
+	root = BSTNode(val = arr[mid][0], data = arr[mid][1])
+	 
+	# left subtree of root has all
+	# values <arr[mid]
+	root.left = sortedArrayToBST(arr[:mid])
+	 
+	# right subtree of root has all
+	# values >arr[mid]
+	root.right = sortedArrayToBST(arr[mid+1:])
+	return root

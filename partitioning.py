@@ -31,7 +31,7 @@ an edge will be in the form of
 '''
 edges = []
 event_list = None
- 
+status_queue = None
 # Closing file
 f.close()
 #  
@@ -42,6 +42,61 @@ def printList(givenList):
 	'''
 	for i in givenList:
 		print(i)
+		
+def calc_line(line,y):
+	x1 = line[0][0];
+	y1 = line[0][1];
+	x2 = line[1][0];
+	y2 = line[1][1];
+	
+	rc = (y2-y1)/(x2-x1)
+	
+	b = -(rc*x1 - y1)
+	
+	v = (y-b)/rc
+	return v
+		
+def insert_line_sq(line,y,status_queue):
+	'''
+	check if the status queue is empty
+	|_ if so, create a new bbst instance
+	else
+	|_ add the line segment to the status queue in the shape
+	   val = horizontal position, data = ((x1,y1),(x2,y2))
+	'''
+	if status_queue == None:
+		status_queue = bbst.BSTNode()
+	
+	status_queue.insert(val = calc_line(line,y), data=line)
+	status_queue = update_sq(y,status_queue)
+	return status_queue
+	
+def delete_line_sq(line,y,status_queue):
+	status_queue = update_sq(y,status_queue);
+	status_queue = status_queue.delete(calc_line(line,y));
+	return status_queue
+
+def update_sq(y,status_queue):
+	tmp_sq = bbst.BSTNode();
+	
+	print("update status queue" );#debug print
+	while status_queue != None:
+		line_segment = status_queue.get_min()
+		tmp_sq.insert(val = calc_line(line_segment[1],y), data = line_segment[1])
+		status_queue = status_queue.delete(line_segment[0])
+	status_queue = bbst.BSTNode()
+	arr = []
+	
+	print("swap queues" );#debug print
+	while tmp_sq != None:
+		tmp_seg = tmp_sq.get_min()
+		arr.append(tmp_seg)
+		tmp_sq = tmp_sq.delete(tmp_seg[0])
+	bbst.sortedArrayToBST(arr)
+	print("\t\t\t done" );#debug print
+	return status_queue
+		
+	
 
 def insert_endpoint_event(bbst, y,edge):
 	'''
@@ -62,7 +117,7 @@ def insert_intersection_event(bbst,y):
 def extract_event():
 	return 0
 	
-def handle_event(e_list,event_data):
+def handle_event(e_list,event_data,s_queue):
 	'''
 	we hebben 3 events
 	|_het is een beginpoint voor een edge
@@ -77,10 +132,12 @@ def handle_event(e_list,event_data):
 	
 	Gezien dat alle soorten events uiteindelijk kijken naar de intersection points tussen de lijnen kan je net zo goed dit na ieder event doen dan los
 	'''
+	print("next event");
 	if event_data[0] == 0:
 		if len(event_data[2]) != 0:
 			for e in event_data[2]:
 				insert_endpoint_event(e_list,e[1][1],e)
+				s_queue = insert_line_sq(e,e[0][1],s_queue)
 	
 	if event_data[0] == 1:
 		print("this is an intersection event");
@@ -171,11 +228,12 @@ def main(args):
 	delete event from event list
 	rinse and repeat untill event list is clear
 	'''
+	status_queue = None
 	while event_list != None:
 		next_event = event_list.get_max();
 		#shows the next event:
 		#print("next event is:\t" ,next_event[0], next_event[1]); #debug print to check the next event
-		handle_event(event_list,next_event[1])
+		handle_event(event_list,next_event[1],status_queue)
 		event_list = event_list.delete(next_event[0])
 	
 	
