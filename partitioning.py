@@ -8,6 +8,8 @@
  
 import json
 import bbst
+import matplotlib.pyplot as plt
+from matplotlib import collections  as mc
  
 # Opening JSON file
 f = open('p1.json')
@@ -24,6 +26,8 @@ nodes_x = data["x"]
 nodes_y = data["y"]
 edge_source = data["edge_i"]
 edge_dest = data["edge_j"]
+
+control = []
 '''
 List of edges 
 an edge will be in the form of
@@ -35,6 +39,43 @@ status_queue = None
 # Closing file
 f.close()
 #  
+
+def add_control_line(line):
+	s = None
+	e = None;
+	for i in range(len(nodes_x)):
+		if line[0][0] == nodes_x[i] and line[0][1] == nodes_y[i]:
+			s = i
+		if line[1][0] == nodes_x[i] and line[1][1] == nodes_y[i]:
+			e = i;
+	for i in range(len(edge_source)):
+		if (edge_source[i] == s and edge_dest[i] == e) or (edge_dest[i] == s and edge_source[i] == e):
+			if i not in control:
+				control.append(i);
+				
+		
+		
+def show_statusqueue(sq,v = False):
+	if sq == None:
+		return
+	queue = []
+	sq.preorder(queue);
+	ls = []
+	print(queue)
+	for segment in queue:
+		print(segment[1])
+		for l in segment[1][2]:
+			ls.append([l[1][0],l[1][1]])
+
+
+	lc = mc.LineCollection(ls, linewidths=2)
+	fig, ax = plt.subplots()
+	ax.add_collection(lc)
+	ax.autoscale()
+	ax.margins(0.1)
+	if v == True:
+		plt.show()
+		
 
 def printList(givenList):
 	'''
@@ -64,36 +105,69 @@ def insert_line_sq(line,y,status_queue):
 	|_ add the line segment to the status queue in the shape
 	   val = horizontal position, data = ((x1,y1),(x2,y2))
 	'''
+	add_control_line(line[1])
 	if status_queue == None:
+		print("status queue was empty");
 		status_queue = bbst.BSTNode()
-	
-	status_queue.insert(val = calc_line(line,y), data=line)
-	status_queue = update_sq(y,status_queue)
+		status_queue.insert(val = calc_line(line[1],y), data=(0,0,[line],[]))
+	else:
+		print("insert line in status queue")
+		if status_queue.exists(val = calc_line(line[1],y)) == True:
+			status_queue.update(val=calc_line(line[1],y), data = (0,0,[line],[])); 
+		else:
+			status_queue.insert(val = calc_line(line[1],y), data=(0,0,[line],[]))
+	#status_queue = update_sq(y,status_queue)
 	return status_queue
 	
 def delete_line_sq(line,y,status_queue):
+	
+	if status_queue == None:
+		return status_queue
 	status_queue = update_sq(y,status_queue);
 	status_queue = status_queue.delete(calc_line(line,y));
+	sq = []
+	if status_queue != None:
+		status_queue.preorder(sq)
+	#printList(sq)
 	return status_queue
 
+'''
+probleem nu:
+- lijnen staan obv niet in general positie, niet over nagedacht
+- in de status queue worden ze bijgehouden op hun x positie maar er kan er maar een per positie staan in de status queue
+
+oplossing:
+- update functie voor als hij al bestaat
+- segmenten splitten in de update functie
+
+- ik raak lijnen kwijt in de update functie :l
+'''
+
 def update_sq(y,status_queue):
-	tmp_sq = bbst.BSTNode();
-	
-	print("update status queue" );#debug print
+	tmp_sq = None
+	#print("update status queue" );#debug print
+	pre = len(status_queue.preorder([]))
 	while status_queue != None:
-		line_segment = status_queue.get_min()
-		tmp_sq.insert(val = calc_line(line_segment[1],y), data = line_segment[1])
-		status_queue = status_queue.delete(line_segment[0])
+		line_segment = status_queue.get_min() #gets the data
+		print(f"ive got {len(line_segment[1][2])} segments")
+		for line in line_segment[1][2]:
+			print("line: \t",line)
+			tmp_sq = insert_line_sq(line,y,tmp_sq)
+			
+		status_queue = status_queue.delete(line_segment[0]) # hij delete meteen alle lijnen die op de current y eindigen, dus delete zelf is niet helemaal nodig tbh, maar voor de show
 	status_queue = bbst.BSTNode()
 	arr = []
-	
-	print("swap queues" );#debug print
+	tussen = len(tmp_sq.preorder([]))
+	#print("swap queues" );#debug print
 	while tmp_sq != None:
 		tmp_seg = tmp_sq.get_min()
 		arr.append(tmp_seg)
 		tmp_sq = tmp_sq.delete(tmp_seg[0])
-	bbst.sortedArrayToBST(arr)
-	print("\t\t\t done" );#debug print
+	status_queue = bbst.sortedArrayToBST(arr)
+	#print("\t\t\t done" );#debug print
+	
+	post = len(status_queue.preorder([]))
+	print(f"array len difference {pre} -> {tussen} ->{post}")
 	return status_queue
 		
 	
@@ -104,9 +178,13 @@ def insert_endpoint_event(bbst, y,edge):
 	if the node does not exist then it will only be used for an endpoint event and we have to create it
 	'''
 	if bbst.exists(y) == True:
-		bbst.update(val = y, data = (0,0,[],[edge]))
+		print("exists so update")
+		bbst.update(val=y, data=(0,0,[],[edge]))
 	else:
 		bbst.insert(val=y,data=(0,get_coords(nodes_y.index(y)),[],[edge]))
+	el = []
+	bbst.preorder(el)
+	#printList(el)
 	
 def insert_intersection_event(bbst,y):
 	'''
@@ -132,12 +210,19 @@ def handle_event(e_list,event_data,s_queue):
 	
 	Gezien dat alle soorten events uiteindelijk kijken naar de intersection points tussen de lijnen kan je net zo goed dit na ieder event doen dan los
 	'''
+	status_queue = s_queue
 	print("next event");
 	if event_data[0] == 0:
 		if len(event_data[2]) != 0:
 			for e in event_data[2]:
 				insert_endpoint_event(e_list,e[1][1],e)
-				s_queue = insert_line_sq(e,e[0][1],s_queue)
+				status_queue = insert_line_sq((0,e),e[0][1],status_queue)
+				status_queue = update_sq(e[1][1],status_queue)
+				#show_statusqueue(status_queue)
+		if len(event_data[3]) != 0:
+			print("end point event");
+			for e in event_data[3]:
+				status_queue = delete_line_sq(e,e[1][1],status_queue)
 	
 	if event_data[0] == 1:
 		print("this is an intersection event");
@@ -145,7 +230,7 @@ def handle_event(e_list,event_data,s_queue):
 		What should happen now;
 		|_we have the current height, which doesn't really matter here, we should flip two edges
 		'''
-	return 0
+	return status_queue
 
 def swap_edges():
 	'''
@@ -233,9 +318,11 @@ def main(args):
 		next_event = event_list.get_max();
 		#shows the next event:
 		#print("next event is:\t" ,next_event[0], next_event[1]); #debug print to check the next event
-		handle_event(event_list,next_event[1],status_queue)
+		status_queue = handle_event(event_list,next_event[1],status_queue)
 		event_list = event_list.delete(next_event[0])
-	
+		if status_queue != None:
+			show_statusqueue(status_queue, v=False)
+	print(control)
 	
 	
 

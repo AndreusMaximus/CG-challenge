@@ -76,20 +76,22 @@ class BSTNode:
 
 	def update(self, val, data):
 		if val == self.val:
+			#print(self.data)
 			for d in data[2]:
 				self.data[2].append(d)
 			for d in data[3]:
 				self.data[3].append(d)
+			#print(self.data)
 			return True
 
 		if val < self.val:
 			if self.left == None:
 				return False
-			return self.left.exists(val)
+			return self.left.update(val,data)
 
 		if self.right == None:
 			return False
-		return self.right.exists(val)
+		return self.right.update(val,data)
 
 	def preorder(self, vals):
 		if self.val is not None:
