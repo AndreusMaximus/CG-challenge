@@ -28,6 +28,9 @@ edge_source = data["edge_i"]
 edge_dest = data["edge_j"]
 
 control = []
+s_control = []
+e_control = []
+event_history = []
 '''
 List of edges 
 an edge will be in the form of
@@ -50,12 +53,11 @@ def add_control_line(line):
 			e = i;
 	for i in range(len(edge_source)):
 		if (edge_source[i] == s and edge_dest[i] == e) or (edge_dest[i] == s and edge_source[i] == e):
-			if i not in control:
-				control.append(i);
+			return i
 				
 		
 		
-def show_statusqueue(sq,v = False):
+def show_statusqueue(sq,v = False, h_line = None):
 	if sq == None:
 		return
 	queue = []
@@ -67,10 +69,13 @@ def show_statusqueue(sq,v = False):
 		for l in segment[1][2]:
 			ls.append([l[1][0],l[1][1]])
 
-
 	lc = mc.LineCollection(ls, linewidths=2)
 	fig, ax = plt.subplots()
+	if h_line != None:
+		plt.hlines(h_line, min(nodes_x),max(nodes_x),colors="red")
 	ax.add_collection(lc)
+	plt.ylim([min(nodes_y),max(nodes_y)])
+	plt.xlim([min(nodes_x),max(nodes_x)])
 	ax.autoscale()
 	ax.margins(0.1)
 	if v == True:
@@ -105,7 +110,6 @@ def insert_line_sq(line,y,status_queue):
 	|_ add the line segment to the status queue in the shape
 	   val = horizontal position, data = ((x1,y1),(x2,y2))
 	'''
-	add_control_line(line[1])
 	if status_queue == None:
 		print("status queue was empty");
 		status_queue = bbst.BSTNode()
@@ -152,6 +156,8 @@ def update_sq(y,status_queue):
 		print(f"ive got {len(line_segment[1][2])} segments")
 		for line in line_segment[1][2]:
 			print("line: \t",line)
+			if add_control_line(line[1]) not in control:
+				control.append(add_control_line(line[1]))
 			tmp_sq = insert_line_sq(line,y,tmp_sq)
 			
 		status_queue = status_queue.delete(line_segment[0]) # hij delete meteen alle lijnen die op de current y eindigen, dus delete zelf is niet helemaal nodig tbh, maar voor de show
@@ -218,11 +224,15 @@ def handle_event(e_list,event_data,s_queue):
 				insert_endpoint_event(e_list,e[1][1],e)
 				status_queue = insert_line_sq((0,e),e[0][1],status_queue)
 				status_queue = update_sq(e[1][1],status_queue)
+				if add_control_line(e) not in s_control:
+					s_control.append(add_control_line(e))
 				#show_statusqueue(status_queue)
 		if len(event_data[3]) != 0:
 			print("end point event");
 			for e in event_data[3]:
 				status_queue = delete_line_sq(e,e[1][1],status_queue)
+				if add_control_line(e) not in e_control:
+					e_control.append(add_control_line(e))
 	
 	if event_data[0] == 1:
 		print("this is an intersection event");
@@ -321,8 +331,17 @@ def main(args):
 		status_queue = handle_event(event_list,next_event[1],status_queue)
 		event_list = event_list.delete(next_event[0])
 		if status_queue != None:
-			show_statusqueue(status_queue, v=False)
-	print(control)
+			event_history.append(next_event[0])
+			show_statusqueue(status_queue, v=True, h_line = next_event[0])
+	s_control.sort()		
+	control.sort()	
+	e_control.sort()		
+			
+	print("start event controle: ", s_control)
+	print("statusqueue controle: ", control)
+	print("end event   controle: ", e_control)
+	printList(event_history)
+	
 	
 	
 
