@@ -110,6 +110,29 @@ class BSTNode:
 		if self.right is not None:
 			self.right.inorder(vals)
 		return vals
+		
+	
+	def check_intersections(self,intersections):
+		if self.left is not None:
+			self.left.check_intersections(intersections)
+		if self.val is not None:
+			if self.left is not None:
+				print("sorting data!");
+				print(self.left.data[2])
+				self.left.data[2].sort(key=lambda x : x[1][0])
+				print(self.left.data[2][-1][1])
+				if intersects(self.data[2][-1][1], self.left.data[2][-1][1]) == True:
+					print(f"lines {self.data[2][-1][1]} and {self.left.data[2][-1][1]} intersect")
+				#check crossing functie
+				'''
+				Todo, check meest linkse van self met meest rechtse van self.left.data[2]
+				|_ als deze kruisen dan passen we de partition aan van de lijn zodat de partion van de lijn partition(self.left.data[2](right))+1 wordt
+				Todo, check meest rechtse van self met meest linkse van self.right.data[2]
+				|_ als deze kruisen dan passen we de partition aan van de lijn zodat self.right.data[2](left) = +1 van de partition van self
+				'''
+		if self.right is not None:
+			self.right.check_intersections(intersections)
+		return intersections
 
 	def postorder(self, vals):
 		if self.left is not None:
@@ -119,6 +142,9 @@ class BSTNode:
 		if self.val is not None:
 			vals.append((self.val,self.data))
 		return vals
+
+def check_crossing_line(left,right):
+	return False
 
 def sortedArrayToBST(arr):
 	 
@@ -139,3 +165,40 @@ def sortedArrayToBST(arr):
 	# values >arr[mid]
 	root.right = sortedArrayToBST(arr[mid+1:])
 	return root
+
+
+def on_segment(p, q, r):
+	if r[0] <= max(p[0], q[0]) and r[0] >= min(p[0], q[0]) and r[1] <= max(p[1], q[1]) and r[1] >= min(p[1], q[1]):
+		return True
+	return False
+
+def orientation(p, q, r):
+	val = ((q[1] - p[1]) * (r[0] - q[0])) - ((q[0] - p[0]) * (r[1] - q[1]))
+	if val == 0 : return 0
+	return 1 if val > 0 else -1
+
+def intersects(seg1, seg2):
+	p1 = seg1[0]
+	q1 = seg1[1]
+	p2 = seg2[0]
+	q2 = seg2[1]
+	if p1 == p2 or p1 == q2 or q1 == p2 or q1 == q2:
+		return False
+
+	o1 = orientation(p1, q1, p2)
+
+	o2 = orientation(p1, q1, q2)
+	o3 = orientation(p2, q2, p1)
+	o4 = orientation(p2, q2, q1)
+
+	if o1 != o2 and o3 != o4:#check general case
+
+		return True
+
+	if o1 == 0 and on_segment(p1, q1, p2) : return True#check special cases
+
+	if o2 == 0 and on_segment(p1, q1, q2) : return True
+	if o3 == 0 and on_segment(p2, q2, p1) : return True
+	if o4 == 0 and on_segment(p2, q2, q1) : return True
+
+	return False

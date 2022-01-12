@@ -61,14 +61,14 @@ def show_statusqueue(sq,v = False, h_line = None):
 	if sq == None:
 		return
 	queue = []
-	sq.preorder(queue);
+	sq.inorder(queue);
 	ls = []
-	print(queue)
+	order = []
 	for segment in queue:
-		print(segment[1])
+		order.append(segment[0])
 		for l in segment[1][2]:
 			ls.append([l[1][0],l[1][1]])
-
+	print("sq order",order)
 	lc = mc.LineCollection(ls, linewidths=2)
 	fig, ax = plt.subplots()
 	if h_line != None:
@@ -151,11 +151,12 @@ def update_sq(y,status_queue):
 	tmp_sq = None
 	#print("update status queue" );#debug print
 	pre = len(status_queue.preorder([]))
+	#print(f"current event height: {y} ")
 	while status_queue != None:
 		line_segment = status_queue.get_min() #gets the data
-		print(f"ive got {len(line_segment[1][2])} segments")
+		#print(f"ive got {len(line_segment[1][2])} segments")
 		for line in line_segment[1][2]:
-			print("line: \t",line)
+			#print(f"\t line: {line} goes from {line_segment[0]} to {calc_line(line[1],y)}")
 			if add_control_line(line[1]) not in control:
 				control.append(add_control_line(line[1]))
 			tmp_sq = insert_line_sq(line,y,tmp_sq)
@@ -184,13 +185,16 @@ def insert_endpoint_event(bbst, y,edge):
 	if the node does not exist then it will only be used for an endpoint event and we have to create it
 	'''
 	if bbst.exists(y) == True:
-		print("exists so update")
 		bbst.update(val=y, data=(0,0,[],[edge]))
 	else:
 		bbst.insert(val=y,data=(0,get_coords(nodes_y.index(y)),[],[edge]))
 	el = []
 	bbst.preorder(el)
 	#printList(el)
+	
+	
+def check_intersections(status_queue):
+	status_queue.check_intersections([])
 	
 def insert_intersection_event(bbst,y):
 	'''
@@ -221,9 +225,10 @@ def handle_event(e_list,event_data,s_queue):
 	if event_data[0] == 0:
 		if len(event_data[2]) != 0:
 			for e in event_data[2]:
+				print("\t new line event");
 				insert_endpoint_event(e_list,e[1][1],e)
 				status_queue = insert_line_sq((0,e),e[0][1],status_queue)
-				status_queue = update_sq(e[1][1],status_queue)
+				status_queue = update_sq(e[0][1],status_queue)
 				if add_control_line(e) not in s_control:
 					s_control.append(add_control_line(e))
 				#show_statusqueue(status_queue)
@@ -240,6 +245,8 @@ def handle_event(e_list,event_data,s_queue):
 		What should happen now;
 		|_we have the current height, which doesn't really matter here, we should flip two edges
 		'''
+	if status_queue != None:
+		check_intersections(status_queue);
 	return status_queue
 
 def swap_edges():
