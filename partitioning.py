@@ -10,9 +10,11 @@ import json
 import bbst
 import matplotlib.pyplot as plt
 from matplotlib import collections  as mc
+import numpy as np
  
 # Opening JSON file
 f = open('p1.json')
+#f = open('instances/reecn3382.instance.json')
  
 # returns JSON object as
 # a dictionary
@@ -42,6 +44,12 @@ status_queue = None
 # Closing file
 f.close()
 #  
+partitions = []
+def add_line_to_partitions(line):
+	while len(partitions) < line[2][0][0] + 1:
+		partitions.append([])
+	partitions[line[2][0][0]].append(line[2][0][1])
+	
 
 def add_control_line(line):
 	s = None
@@ -65,10 +73,11 @@ def show_statusqueue(sq,v = False, h_line = None):
 	ls = []
 	order = []
 	for segment in queue:
-		order.append(segment[0])
+		#order.append(segment[0])
 		for l in segment[1][2]:
 			ls.append([l[1][0],l[1][1]])
-	print("sq order",order)
+			order.append("s"+str(add_control_line([l[1][0],l[1][1]])))
+	#print("sq order",order)
 	lc = mc.LineCollection(ls, linewidths=2)
 	fig, ax = plt.subplots()
 	if h_line != None:
@@ -80,6 +89,23 @@ def show_statusqueue(sq,v = False, h_line = None):
 	ax.margins(0.1)
 	if v == True:
 		plt.show()
+		
+def show_partitions():
+	fig, ax = plt.subplots()
+	
+	for p in partitions:
+		ls = []
+		for line in p:
+			ls.append([line[0],line[1]])
+		lc = mc.LineCollection(ls, linewidths=2, color=(np.random.random_sample(),np.random.random_sample(),np.random.random_sample()))
+		ax.add_collection(lc)	
+	plt.ylim([min(nodes_y),max(nodes_y)])
+	plt.xlim([min(nodes_x),max(nodes_x)])
+	ax.autoscale()
+	ax.margins(0.1)
+	plt.show()
+			
+	
 		
 
 def printList(givenList):
@@ -111,11 +137,11 @@ def insert_line_sq(line,y,status_queue):
 	   val = horizontal position, data = ((x1,y1),(x2,y2))
 	'''
 	if status_queue == None:
-		print("status queue was empty");
+		#print("status queue was empty");
 		status_queue = bbst.BSTNode()
 		status_queue.insert(val = calc_line(line[1],y), data=(0,0,[line],[]))
 	else:
-		print("insert line in status queue")
+		#print("insert line in status queue")
 		if status_queue.exists(val = calc_line(line[1],y)) == True:
 			status_queue.update(val=calc_line(line[1],y), data = (0,0,[line],[])); 
 		else:
@@ -128,7 +154,12 @@ def delete_line_sq(line,y,status_queue):
 	if status_queue == None:
 		return status_queue
 	status_queue = update_sq(y,status_queue);
-	status_queue = status_queue.delete(calc_line(line,y));
+	d_line = status_queue.get_data(val=calc_line(line,y))
+	#print(f"line, that gets deleted {d_line}");
+	add_line_to_partitions(d_line)
+	#print(status_queue.exists(calc_line(line,y)));
+	if status_queue.can_delete(calc_line(line,y),line) == True:
+		status_queue = status_queue.delete(calc_line(line,y));
 	sq = []
 	if status_queue != None:
 		status_queue.preorder(sq)
@@ -152,6 +183,7 @@ def update_sq(y,status_queue):
 	#print("update status queue" );#debug print
 	pre = len(status_queue.preorder([]))
 	#print(f"current event height: {y} ")
+	inQ = 0;
 	while status_queue != None:
 		line_segment = status_queue.get_min() #gets the data
 		#print(f"ive got {len(line_segment[1][2])} segments")
@@ -160,6 +192,7 @@ def update_sq(y,status_queue):
 			if add_control_line(line[1]) not in control:
 				control.append(add_control_line(line[1]))
 			tmp_sq = insert_line_sq(line,y,tmp_sq)
+			inQ += 1
 			
 		status_queue = status_queue.delete(line_segment[0]) # hij delete meteen alle lijnen die op de current y eindigen, dus delete zelf is niet helemaal nodig tbh, maar voor de show
 	status_queue = bbst.BSTNode()
@@ -174,7 +207,8 @@ def update_sq(y,status_queue):
 	#print("\t\t\t done" );#debug print
 	
 	post = len(status_queue.preorder([]))
-	print(f"array len difference {pre} -> {tussen} ->{post}")
+	#print(f"array len difference {pre} -> {tussen} ->{post}")
+	#print(f"# lines in s queue {inQ}")
 	return status_queue
 		
 	
@@ -205,7 +239,7 @@ def insert_intersection_event(bbst,y):
 def extract_event():
 	return 0
 	
-def handle_event(e_list,event_data,s_queue):
+def handle_event(e_list,event_data,s_queue,event_y):
 	'''
 	we hebben 3 events
 	|_het is een beginpoint voor een edge
@@ -224,20 +258,21 @@ def handle_event(e_list,event_data,s_queue):
 	print("next event");
 	if event_data[0] == 0:
 		if len(event_data[2]) != 0:
+			print("\t new line event");
 			for e in event_data[2]:
-				print("\t new line event");
 				insert_endpoint_event(e_list,e[1][1],e)
-				status_queue = insert_line_sq((0,e),e[0][1],status_queue)
+				status_queue = insert_line_sq([0,e],e[0][1],status_queue)
 				status_queue = update_sq(e[0][1],status_queue)
 				if add_control_line(e) not in s_control:
 					s_control.append(add_control_line(e))
-				#show_statusqueue(status_queue)
+				#show_statusqueue(status_queue, v=True, h_line = event_y)
 		if len(event_data[3]) != 0:
-			print("end point event");
+			print("\tend point event");
 			for e in event_data[3]:
 				status_queue = delete_line_sq(e,e[1][1],status_queue)
 				if add_control_line(e) not in e_control:
 					e_control.append(add_control_line(e))
+				#show_statusqueue(status_queue, v=True, h_line = event_y)
 	
 	if event_data[0] == 1:
 		print("this is an intersection event");
@@ -335,7 +370,7 @@ def main(args):
 		next_event = event_list.get_max();
 		#shows the next event:
 		#print("next event is:\t" ,next_event[0], next_event[1]); #debug print to check the next event
-		status_queue = handle_event(event_list,next_event[1],status_queue)
+		status_queue = handle_event(event_list,next_event[1],status_queue,next_event[0])
 		event_list = event_list.delete(next_event[0])
 		if status_queue != None:
 			event_history.append(next_event[0])
@@ -348,6 +383,8 @@ def main(args):
 	print("statusqueue controle: ", control)
 	print("end event   controle: ", e_control)
 	printList(event_history)
+	printList(partitions)
+	show_partitions()
 	
 	
 	

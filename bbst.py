@@ -60,6 +60,31 @@ class BSTNode:
 		self.data = min_larger_node.data
 		self.right = self.right.delete(min_larger_node.val)
 		return self
+	
+	def can_delete(self,val,d_line):
+		if val == self.val:
+			newLines = []
+			for line in self.data[2]:
+				if line[1] != d_line:
+					newLines.append(line);
+					#print(d_line,"!=" ,line[1])
+			#print(newLines)
+			self.data = (self.data[0], self.data[1], newLines, self.data[3])
+			#print(self.data)
+			if len(newLines) != 0:
+				return False
+			else:
+				return True
+
+		if val < self.val:
+			if self.left == None:
+				return True
+			return self.left.can_delete(val,d_line)
+
+		if self.right == None:
+			return True
+		return self.right.can_delete(val,d_line)
+		
 
 	def exists(self, val):
 		if val == self.val:
@@ -73,6 +98,20 @@ class BSTNode:
 		if self.right == None:
 			return False
 		return self.right.exists(val)
+		
+		
+	def get_data(self, val):
+		if val == self.val:
+			return self.data
+
+		if val < self.val:
+			if self.left == None:
+				return False
+			return self.left.get_data(val)
+
+		if self.right == None:
+			return False
+		return self.right.get_data(val)
 
 	def update(self, val, data):
 		if val == self.val:
@@ -117,12 +156,14 @@ class BSTNode:
 			self.left.check_intersections(intersections)
 		if self.val is not None:
 			if self.left is not None:
-				print("sorting data!");
-				print(self.left.data[2])
+				#print("sorting data!");
+				#print(self.left.data[2])
 				self.left.data[2].sort(key=lambda x : x[1][0])
-				print(self.left.data[2][-1][1])
+				#print(self.left.data[2][-1][1])
 				if intersects(self.data[2][-1][1], self.left.data[2][-1][1]) == True:
 					print(f"lines {self.data[2][-1][1]} and {self.left.data[2][-1][1]} intersect")
+					print(f"\t increase {self.data[2][-1][0]} to {self.data[2][-1][0]+1} intersect")
+					self.data[2][-1][0] =self.data[2][-1][0]+1;
 				#check crossing functie
 				'''
 				Todo, check meest linkse van self met meest rechtse van self.left.data[2]
