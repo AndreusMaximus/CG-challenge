@@ -161,8 +161,8 @@ class BSTNode:
 				self.left.data[2].sort(key=lambda x : x[1][0])
 				#print(self.left.data[2][-1][1])
 				if intersects(self.data[2][-1][1], self.left.data[2][-1][1]) == True:
-					print(f"lines {self.data[2][-1][1]} and {self.left.data[2][-1][1]} intersect")
-					print(f"\t increase {self.data[2][-1][0]} to {self.data[2][-1][0]+1} intersect")
+					#print(f"lines {self.data[2][-1][1]} and {self.left.data[2][-1][1]} intersect")
+					#print(f"\t increase {self.data[2][-1][0]} to {self.data[2][-1][0]+1} intersect")
 					self.data[2][-1][0] =self.data[2][-1][0]+1;
 				#check crossing functie
 				'''
@@ -183,6 +183,15 @@ class BSTNode:
 		if self.val is not None:
 			vals.append((self.val,self.data))
 		return vals
+		
+	def check_depth(self,depth):
+		res = depth + 1;
+		right = self.right.check_depth(res) if self.right != None else res;
+		left = self.left.check_depth(res) if self.left != None else res;
+		
+		return max(left,right)
+		
+		
 
 def check_crossing_line(left,right):
 	return False

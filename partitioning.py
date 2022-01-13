@@ -14,7 +14,7 @@ import numpy as np
  
 # Opening JSON file
 f = open('p1.json')
-#f = open('instances/reecn3382.instance.json')
+f = open('instances/rvisp3499.instance.json')
  
 # returns JSON object as
 # a dictionary
@@ -153,7 +153,7 @@ def delete_line_sq(line,y,status_queue):
 	
 	if status_queue == None:
 		return status_queue
-	status_queue = update_sq(y,status_queue);
+	#status_queue = update_sq(y,status_queue);
 	d_line = status_queue.get_data(val=calc_line(line,y))
 	#print(f"line, that gets deleted {d_line}");
 	add_line_to_partitions(d_line)
@@ -181,7 +181,7 @@ oplossing:
 def update_sq(y,status_queue):
 	tmp_sq = None
 	#print("update status queue" );#debug print
-	pre = len(status_queue.preorder([]))
+	#pre = len(status_queue.preorder([]))
 	#print(f"current event height: {y} ")
 	inQ = 0;
 	while status_queue != None:
@@ -193,23 +193,38 @@ def update_sq(y,status_queue):
 				control.append(add_control_line(line[1]))
 			tmp_sq = insert_line_sq(line,y,tmp_sq)
 			inQ += 1
+			if inQ > 100:
+				tmp_sq = balance_bbst(tmp_sq)
+				inQ = 0
 			
 		status_queue = status_queue.delete(line_segment[0]) # hij delete meteen alle lijnen die op de current y eindigen, dus delete zelf is niet helemaal nodig tbh, maar voor de show
-	status_queue = bbst.BSTNode()
-	arr = []
-	tussen = len(tmp_sq.preorder([]))
-	#print("swap queues" );#debug print
-	while tmp_sq != None:
-		tmp_seg = tmp_sq.get_min()
-		arr.append(tmp_seg)
-		tmp_sq = tmp_sq.delete(tmp_seg[0])
-	status_queue = bbst.sortedArrayToBST(arr)
-	#print("\t\t\t done" );#debug print
-	
-	post = len(status_queue.preorder([]))
-	#print(f"array len difference {pre} -> {tussen} ->{post}")
-	#print(f"# lines in s queue {inQ}")
-	return status_queue
+	#print("tmpdepth = ", tmp_sq.check_depth(0))
+	#status_queue = bbst.BSTNode()
+	#arr = []
+	##tussen = len(tmp_sq.preorder([]))
+	##print("swap queues" );#debug print
+	#while tmp_sq != None:
+	#	tmp_seg = tmp_sq.get_min()
+	#	arr.append(tmp_seg)
+	#	tmp_sq = tmp_sq.delete(tmp_seg[0])
+	##print("\n\n update")
+	##print("array:")
+	##printList(arr)
+	#status_queue = bbst.sortedArrayToBST(arr)
+	#io = status_queue.inorder([])
+	##print("imorder:")
+	##printList(io)
+	#io = status_queue.preorder([])
+	##print("preorder:")
+	##printList(io)
+	#print(f"depth = {status_queue.check_depth(0)} elems = {len(io)}")
+	#
+	##print("\t\t\t done" );#debug print
+	#
+	##post = len(status_queue.preorder([]))
+	##print(f"array len difference {pre} -> {tussen} ->{post}")
+	##print(f"# lines in s queue {inQ}")
+	return balance_bbst(tmp_sq)
 		
 	
 
@@ -222,9 +237,8 @@ def insert_endpoint_event(bbst, y,edge):
 		bbst.update(val=y, data=(0,0,[],[edge]))
 	else:
 		bbst.insert(val=y,data=(0,get_coords(nodes_y.index(y)),[],[edge]))
-	el = []
-	bbst.preorder(el)
-	#printList(el)
+		bbst =  balance_bbst(bbst);
+	return bbst
 	
 	
 def check_intersections(status_queue):
@@ -255,34 +269,32 @@ def handle_event(e_list,event_data,s_queue,event_y):
 	Gezien dat alle soorten events uiteindelijk kijken naar de intersection points tussen de lijnen kan je net zo goed dit na ieder event doen dan los
 	'''
 	status_queue = s_queue
-	print("next event");
+	event_queue = e_list
+	#print("next event");
 	if event_data[0] == 0:
+		if status_queue != None:
+			status_queue = update_sq(event_y,status_queue)
 		if len(event_data[2]) != 0:
-			print("\t new line event");
+			#print("\t new line event");
 			for e in event_data[2]:
-				insert_endpoint_event(e_list,e[1][1],e)
+				event_queue = insert_endpoint_event(event_queue,e[1][1],e)
 				status_queue = insert_line_sq([0,e],e[0][1],status_queue)
-				status_queue = update_sq(e[0][1],status_queue)
 				if add_control_line(e) not in s_control:
 					s_control.append(add_control_line(e))
 				#show_statusqueue(status_queue, v=True, h_line = event_y)
+				
+		status_queue = update_sq(event_y,status_queue)
 		if len(event_data[3]) != 0:
-			print("\tend point event");
+			#print("\tend point event");
 			for e in event_data[3]:
 				status_queue = delete_line_sq(e,e[1][1],status_queue)
 				if add_control_line(e) not in e_control:
 					e_control.append(add_control_line(e))
 				#show_statusqueue(status_queue, v=True, h_line = event_y)
 	
-	if event_data[0] == 1:
-		print("this is an intersection event");
-		'''
-		What should happen now;
-		|_we have the current height, which doesn't really matter here, we should flip two edges
-		'''
 	if status_queue != None:
 		check_intersections(status_queue);
-	return status_queue
+	return event_queue, status_queue
 
 def swap_edges():
 	'''
@@ -379,15 +391,18 @@ def main(args):
 	'''
 	print("start")
 	status_queue = None
+	event_counter = 0
 	while event_list != None:
+		print(f"event {event_counter} of at most {len(nodes_x)}",end='\r')
+		event_counter += 1
 		next_event = event_list.get_max();
 		#shows the next event:
 		#print("next event is:\t" ,next_event[0], next_event[1]); #debug print to check the next event
-		status_queue = handle_event(event_list,next_event[1],status_queue,next_event[0])
+		event_list, status_queue = handle_event(event_list,next_event[1],status_queue,next_event[0])
 		event_list = event_list.delete(next_event[0])
 		if status_queue != None:
 			event_history.append(next_event[0])
-			show_statusqueue(status_queue, v=True, h_line = next_event[0])
+			#show_statusqueue(status_queue, v=True, h_line = next_event[0])
 	s_control.sort()		
 	control.sort()	
 	e_control.sort()		
@@ -395,8 +410,6 @@ def main(args):
 	print("start event controle: ", s_control)
 	print("statusqueue controle: ", control)
 	print("end event   controle: ", e_control)
-	printList(event_history)
-	printList(partitions)
 	show_partitions()
 	
 	
