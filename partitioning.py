@@ -14,7 +14,7 @@ import numpy as np
  
 # Opening JSON file
 f = open('p1.json')
-f = open('instances/reecn3382.instance.json')
+#f = open('instances/reecn3382.instance.json')
  
 # returns JSON object as
 # a dictionary
@@ -153,7 +153,7 @@ def delete_line_sq(line,y,status_queue):
 	
 	if status_queue == None:
 		return status_queue
-	#status_queue = update_sq(y,status_queue);
+	status_queue = update_sq(y,status_queue);
 	d_line = status_queue.get_data(val=calc_line(line,y))
 	#print(f"line, that gets deleted {d_line}");
 	add_line_to_partitions(d_line)
@@ -262,13 +262,12 @@ def handle_event(e_list,event_data,s_queue,event_y):
 			for e in event_data[2]:
 				insert_endpoint_event(e_list,e[1][1],e)
 				status_queue = insert_line_sq([0,e],e[0][1],status_queue)
+				status_queue = update_sq(e[0][1],status_queue)
 				if add_control_line(e) not in s_control:
 					s_control.append(add_control_line(e))
 				#show_statusqueue(status_queue, v=True, h_line = event_y)
-			status_queue = update_sq(e[0][1],status_queue)
 		if len(event_data[3]) != 0:
 			print("\tend point event");
-			status_queue = update_sq(e[0][1],status_queue)
 			for e in event_data[3]:
 				status_queue = delete_line_sq(e,e[1][1],status_queue)
 				if add_control_line(e) not in e_control:
@@ -388,7 +387,7 @@ def main(args):
 		event_list = event_list.delete(next_event[0])
 		if status_queue != None:
 			event_history.append(next_event[0])
-			#show_statusqueue(status_queue, v=True, h_line = next_event[0])
+			show_statusqueue(status_queue, v=True, h_line = next_event[0])
 	s_control.sort()		
 	control.sort()	
 	e_control.sort()		
