@@ -64,14 +64,14 @@ class BSTNode:
 	def can_delete(self,val,d_line):
 		if val == self.val:
 			newLines = []
-			for line in self.data[2]:
-				if line[1] != d_line:
+			for line in self.data[3]:
+				if line != d_line:
 					newLines.append(line);
 					#print(d_line,"!=" ,line[1])
 			#print(newLines)
-			self.data = (self.data[0], self.data[1], newLines, self.data[3])
+			self.data = (self.data[0], self.data[1], self.data[2], newLines)
 			#print(self.data)
-			if len(newLines) != 0:
+			if len(newLines) != 0 or len(self.data[2]) != 0:
 				return False
 			else:
 				return True
@@ -100,6 +100,7 @@ class BSTNode:
 		return self.right.exists(val)
 		
 		
+		
 	def get_data(self, val):
 		if val == self.val:
 			return self.data
@@ -117,9 +118,11 @@ class BSTNode:
 		if val == self.val:
 			#print(self.data)
 			for d in data[2]:
-				self.data[2].append(d)
+				if d not in self.data[2]:
+					self.data[2].append(d)
 			for d in data[3]:
-				self.data[3].append(d)
+				if d not in self.data[3]:
+					self.data[3].append(d)
 			#print(self.data)
 			return True
 
@@ -149,6 +152,8 @@ class BSTNode:
 		if self.right is not None:
 			self.right.inorder(vals)
 		return vals
+		
+		
 		
 	
 	def check_intersections(self,intersections):

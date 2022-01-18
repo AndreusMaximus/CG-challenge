@@ -12,22 +12,8 @@ import matplotlib.pyplot as plt
 from matplotlib import collections  as mc
 import numpy as np
  
-# Opening JSON file
-f = open('p1.json')
-f = open('instances/rvisp3499.instance.json')
  
-# returns JSON object as
-# a dictionary
-data = json.load(f)
- 
-# Iterating through the json
-# list
-for d in data:
-	print(data[d])
-nodes_x = data["x"]
-nodes_y = data["y"]
-edge_source = data["edge_i"]
-edge_dest = data["edge_j"]
+
 
 control = []
 s_control = []
@@ -42,54 +28,18 @@ edges = []
 event_list = None
 status_queue = None
 # Closing file
-f.close()
-#  
-partitions = []
-def add_line_to_partitions(line):
-	while len(partitions) < line[2][0][0] + 1:
-		partitions.append([])
-	partitions[line[2][0][0]].append(line[2][0][1])
-	
 
-def add_control_line(line):
-	s = None
-	e = None;
-	for i in range(len(nodes_x)):
-		if line[0][0] == nodes_x[i] and line[0][1] == nodes_y[i]:
-			s = i
-		if line[1][0] == nodes_x[i] and line[1][1] == nodes_y[i]:
-			e = i;
-	for i in range(len(edge_source)):
-		if (edge_source[i] == s and edge_dest[i] == e) or (edge_dest[i] == s and edge_source[i] == e):
-			return i
-				
-		
-		
-def show_statusqueue(sq,v = False, h_line = None):
-	if sq == None:
-		return
-	queue = []
-	sq.inorder(queue);
-	ls = []
-	order = []
-	for segment in queue:
-		#order.append(segment[0])
-		for l in segment[1][2]:
-			ls.append([l[1][0],l[1][1]])
-			order.append("s"+str(add_control_line([l[1][0],l[1][1]])))
-	#print("sq order",order)
-	lc = mc.LineCollection(ls, linewidths=2)
-	fig, ax = plt.subplots()
-	if h_line != None:
-		plt.hlines(h_line, min(nodes_x),max(nodes_x),colors="red")
-	ax.add_collection(lc)
-	plt.ylim([min(nodes_y),max(nodes_y)])
-	plt.xlim([min(nodes_x),max(nodes_x)])
-	ax.autoscale()
-	ax.margins(0.1)
-	if v == True:
-		plt.show()
-		
+nodes_x     = None
+nodes_y     = None
+edge_source = None
+edge_dest   = None
+
+#  
+partitions = []		
+
+'''
+This function shows all partitions in one figure, different colors for different partitions for visibility
+'''	
 def show_partitions():
 	fig, ax = plt.subplots()
 	
@@ -103,18 +53,60 @@ def show_partitions():
 	plt.xlim([min(nodes_x),max(nodes_x)])
 	ax.autoscale()
 	ax.margins(0.1)
-	plt.show()
-			
-	
-		
+	plt.show()	
+'''
+show just one partition, or list of lines
+'''	
+def show_partition(partition):
+	fig, ax = plt.subplots()
+	ls = []
+	for line in partition:
+		ls.append([line[0],line[1]])
+	lc = mc.LineCollection(ls, linewidths=2, color=(np.random.random_sample(),np.random.random_sample(),np.random.random_sample()))
+	ax.add_collection(lc)	
+	plt.ylim([min(nodes_y),max(nodes_y)])
+	plt.xlim([min(nodes_x),max(nodes_x)])
+	ax.autoscale()
+	ax.margins(0.1)
+	plt.show()	
+'''
+Shows the status queue as it is initialized
+(boolean) 	v		: 	show the picture
+(int)		h_line	:	height of the sweepline
+'''		
+def show_statusqueue(sq,v = False, h_line = None):
+	if sq == None:
+		return
+	queue = []
+	sq.inorder(queue);
+	ls = []
+	order = []
+	for segment in queue:
+		for l in segment[1][3]:
+			ls.append([l[0],l[1]])
+	lc = mc.LineCollection(ls, linewidths=2)
+	fig, ax = plt.subplots()
+	if h_line != None:
+		plt.hlines(h_line, min(nodes_x),max(nodes_x),colors="red")
+	ax.add_collection(lc)
+	plt.ylim([min(nodes_y),max(nodes_y)])
+	plt.xlim([min(nodes_x),max(nodes_x)])
+	ax.autoscale()
+	ax.margins(0.1)
+	if v == True:
+		plt.show()
 
+'''
+just a function to nicely print a list
+'''
 def printList(givenList):
-	'''
-	just a function to nicely print a list
-	'''
 	for i in givenList:
 		print(i)
 		
+
+'''
+function to calculate the x position or a line segment for a given y
+'''		
 def calc_line(line,y):
 	x1 = line[0][0];
 	y1 = line[0][1];
@@ -126,176 +118,10 @@ def calc_line(line,y):
 	b = -(rc*x1 - y1)
 	
 	v = (y-b)/rc
-	return v
-		
-def insert_line_sq(line,y,status_queue):
-	'''
-	check if the status queue is empty
-	|_ if so, create a new bbst instance
-	else
-	|_ add the line segment to the status queue in the shape
-	   val = horizontal position, data = ((x1,y1),(x2,y2))
-	'''
-	if status_queue == None:
-		#print("status queue was empty");
-		status_queue = bbst.BSTNode()
-		status_queue.insert(val = calc_line(line[1],y), data=(0,0,[line],[]))
-	else:
-		#print("insert line in status queue")
-		if status_queue.exists(val = calc_line(line[1],y)) == True:
-			status_queue.update(val=calc_line(line[1],y), data = (0,0,[line],[])); 
-		else:
-			status_queue.insert(val = calc_line(line[1],y), data=(0,0,[line],[]))
-	#status_queue = update_sq(y,status_queue)
-	return status_queue
-	
-def delete_line_sq(line,y,status_queue):
-	
-	if status_queue == None:
-		return status_queue
-	#status_queue = update_sq(y,status_queue);
-	d_line = status_queue.get_data(val=calc_line(line,y))
-	#print(f"line, that gets deleted {d_line}");
-	add_line_to_partitions(d_line)
-	#print(status_queue.exists(calc_line(line,y)));
-	if status_queue.can_delete(calc_line(line,y),line) == True:
-		status_queue = status_queue.delete(calc_line(line,y));
-	sq = []
-	if status_queue != None:
-		status_queue.preorder(sq)
-	#printList(sq)
-	return status_queue
-
+	return round(v)
 '''
-probleem nu:
-- lijnen staan obv niet in general positie, niet over nagedacht
-- in de status queue worden ze bijgehouden op hun x positie maar er kan er maar een per positie staan in de status queue
-
-oplossing:
-- update functie voor als hij al bestaat
-- segmenten splitten in de update functie
-
-- ik raak lijnen kwijt in de update functie :l
+function to swap an edge around so the highest point of the edge is the first coordinate
 '''
-
-def update_sq(y,status_queue):
-	tmp_sq = None
-	#print("update status queue" );#debug print
-	#pre = len(status_queue.preorder([]))
-	#print(f"current event height: {y} ")
-	inQ = 0;
-	while status_queue != None:
-		line_segment = status_queue.get_min() #gets the data
-		#print(f"ive got {len(line_segment[1][2])} segments")
-		for line in line_segment[1][2]:
-			#print(f"\t line: {line} goes from {line_segment[0]} to {calc_line(line[1],y)}")
-			if add_control_line(line[1]) not in control:
-				control.append(add_control_line(line[1]))
-			tmp_sq = insert_line_sq(line,y,tmp_sq)
-			inQ += 1
-			if inQ > 100:
-				tmp_sq = balance_bbst(tmp_sq)
-				inQ = 0
-			
-		status_queue = status_queue.delete(line_segment[0]) # hij delete meteen alle lijnen die op de current y eindigen, dus delete zelf is niet helemaal nodig tbh, maar voor de show
-	#print("tmpdepth = ", tmp_sq.check_depth(0))
-	#status_queue = bbst.BSTNode()
-	#arr = []
-	##tussen = len(tmp_sq.preorder([]))
-	##print("swap queues" );#debug print
-	#while tmp_sq != None:
-	#	tmp_seg = tmp_sq.get_min()
-	#	arr.append(tmp_seg)
-	#	tmp_sq = tmp_sq.delete(tmp_seg[0])
-	##print("\n\n update")
-	##print("array:")
-	##printList(arr)
-	#status_queue = bbst.sortedArrayToBST(arr)
-	#io = status_queue.inorder([])
-	##print("imorder:")
-	##printList(io)
-	#io = status_queue.preorder([])
-	##print("preorder:")
-	##printList(io)
-	#print(f"depth = {status_queue.check_depth(0)} elems = {len(io)}")
-	#
-	##print("\t\t\t done" );#debug print
-	#
-	##post = len(status_queue.preorder([]))
-	##print(f"array len difference {pre} -> {tussen} ->{post}")
-	##print(f"# lines in s queue {inQ}")
-	return balance_bbst(tmp_sq)
-		
-	
-
-def insert_endpoint_event(bbst, y,edge):
-	'''
-	Check if the node exists then we have to update the data
-	if the node does not exist then it will only be used for an endpoint event and we have to create it
-	'''
-	if bbst.exists(y) == True:
-		bbst.update(val=y, data=(0,0,[],[edge]))
-	else:
-		bbst.insert(val=y,data=(0,get_coords(nodes_y.index(y)),[],[edge]))
-		bbst =  balance_bbst(bbst);
-	return bbst
-	
-	
-def check_intersections(status_queue):
-	status_queue.check_intersections([])
-	
-def insert_intersection_event(bbst,y):
-	'''
-	This happens when two lines that are next to each other cross so we need to check if they intersect and then add the event to the event list.
-	'''
-	bbst.insert(val=y,data=(1,get_coords(nodes_y.index(y)),[],[]))
-	
-def extract_event():
-	return 0
-	
-def handle_event(e_list,event_data,s_queue,event_y):
-	'''
-	we hebben 3 events
-	|_het is een beginpoint voor een edge
-	| |_voeg alle nieuwe edges toe in de juiste volgorde in de status queue
-	| |_kijk voor mogelijke intersection points tussen edges
-	| |_een beginpunt van een edge kan ook een endpoint zijn voor een andere edge
-	|_het is een endpoint voor een edge
-	| |_verwijder de edges uit de status queue
-	|_het is een intersection tussen twee edges
-	| |_wissel de edges om in de status queue en check voor nieuwe intersection points
-	| |_kijk verdelen over partitions
-	
-	Gezien dat alle soorten events uiteindelijk kijken naar de intersection points tussen de lijnen kan je net zo goed dit na ieder event doen dan los
-	'''
-	status_queue = s_queue
-	event_queue = e_list
-	#print("next event");
-	if event_data[0] == 0:
-		if status_queue != None:
-			status_queue = update_sq(event_y,status_queue)
-		if len(event_data[2]) != 0:
-			#print("\t new line event");
-			for e in event_data[2]:
-				event_queue = insert_endpoint_event(event_queue,e[1][1],e)
-				status_queue = insert_line_sq([0,e],e[0][1],status_queue)
-				if add_control_line(e) not in s_control:
-					s_control.append(add_control_line(e))
-				#show_statusqueue(status_queue, v=True, h_line = event_y)
-				
-		status_queue = update_sq(event_y,status_queue)
-		if len(event_data[3]) != 0:
-			#print("\tend point event");
-			for e in event_data[3]:
-				status_queue = delete_line_sq(e,e[1][1],status_queue)
-				if add_control_line(e) not in e_control:
-					e_control.append(add_control_line(e))
-				#show_statusqueue(status_queue, v=True, h_line = event_y)
-	
-	if status_queue != None:
-		check_intersections(status_queue);
-	return event_queue, status_queue
-
 def swap_edges():
 	'''
 	iterate over list and swap source and destination to get the highest values as sources
@@ -307,9 +133,16 @@ def swap_edges():
 			edge_dest[i] = edge_source[i]
 			edge_source[i] = tmp;
 
+'''
+Function to return the coordinates of a node for a given node index
+'''
 def get_coords(node):
 	return ( nodes_x[node], nodes_y[node])
 
+
+'''
+creates a list of edges 
+'''
 def create_edgelist():
 	'''
 	Add all edges to the edgelist by iterating over all edges
@@ -323,21 +156,29 @@ def create_edgelist():
 	
 	edges.sort(reverse = True, key=lambda x : x[0][1])
 
+'''
+(SLOW)
+this implementation of a balance function for a BBST extracts ALL items from a bst in an ordered fashion and 
+recreates it as a bbst
+O(n*logn)
+
+ToDo:
+- switch from current structure to AVL tree
+'''
 def balance_bbst(bst):
 	arr = []
-	#print("swap queues" );#debug print
 	while bst != None:
 		tmp_seg = bst.get_min()
 		arr.append(tmp_seg)
 		bst = bst.delete(tmp_seg[0])
 	bst = bbst.sortedArrayToBST(arr)
 	return bst
-	
 
+
+'''
+This is the initial event list, so only start events are present in this list
+'''
 def create_eventlist():
-	'''
-	This is the initial event list, so only start events are present in this list
-	'''
 	e_list = bbst.BSTNode()
 	'''
 	We can fill the e-list in a special way since we know that
@@ -347,24 +188,188 @@ def create_eventlist():
 	edge_pointer = 0;
 	for y in sorted(nodes_y, reverse=True):
 		local_edge_list = []
-		#print(y)#debug print
 		if edge_pointer == len(edges):
 			break
 		while y == edges[edge_pointer][0][1] and edge_pointer < len(edges):
 			local_edge_list.append(edges[edge_pointer])
-			#print("\t",edges[edge_pointer]) #debug print
 			edge_pointer += 1
 			if edge_pointer == len(edges):
 				break
 		if len(local_edge_list) != 0:
-			# The 0 in data willl indicate that this is an start/end-point to differentiate between intersection events
-			#print(y, " -> list ->", local_edge_list)	#debug print
 			e_list.insert(val = y, data = (0,get_coords(nodes_y.index(y)),local_edge_list,[]))
 			e_list = balance_bbst(e_list);
 	return e_list
+
+'''
+checks if bbst exists and inserts or updates the current node
+'''	
+def insert_in_bbst(queue, val, data):
+	if queue == None:
+		queue = bbst.BSTNode();
+		queue.insert(val = val, data = data)
+	else:
+		if queue.exists(val) == True:
+			queue.update(val = val, data = data)
+		else:
+			queue.insert(val = val, data = data)
+	return queue
+
+'''
+updates the bbst with new height values
+'''	
+def update_sq(y,status_queue):
+	tmp_sq = None
+	inQ = 0;
+	while status_queue != None:
+		line_segment = status_queue.get_min()
+		for line in line_segment[1][3]:
+			tmp_sq = insert_in_bbst(tmp_sq, calc_line(line,y), (0,0,[],[line]))
+			inQ += 1
+			if inQ > 100:
+				tmp_sq = balance_bbst(tmp_sq)
+				inQ = 0
+			
+		status_queue = status_queue.delete(line_segment[0]) 
+	
+	return balance_bbst(tmp_sq)
+
+'''
+checks all lines in the partition with each other to see if they cross
+'''
+def check_partitions():
+	
+	for p in partitions:
+		for x in p:
+			for y in p:
+				if x != y:
+					if bbst.intersects(x,y) == True:
+						print("\nStill intersections found")
+						return
+	print("\nNo intersections found")
+
+'''
+Function to determine the intersection coordinates of a line
+'''
+def line_intersection(line1, line2):
+    xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
+    ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+
+    def det(a, b):
+        return a[0] * b[1] - a[1] * b[0]
+
+    div = det(xdiff, ydiff)
+    if div == 0:
+       raise Exception('lines do not intersect')
+
+    d = (det(*line1), det(*line2))
+    x = det(d, xdiff) / div
+    y = det(d, ydiff) / div
+    return round(x), round(y)
+
+
+'''
+Function to check if there are intersections between any of the lines
+'''	
+def check_intersections(status_queue,y):
+	order = status_queue.inorder([])
+	intersections = []
+	for i in range(1,len(order)):
+		offset = 1
+		while len(order[i-offset][1][3]) == 0:
+			offset += 1
+			if i-offset == 0:
+				continue;
+		for line_l in order[i-offset][1][3]:
+			deletable = []
+			for line_c in order[i][1][3]:
+				if bbst.intersects(line_l, line_c) == True:
+					intersections.append((line_l, line_c))
+					deletable.append(line_c)
+					if status_queue.can_delete(calc_line(line_c, y), line_c) == True:
+						status_queue = status_queue.delete(calc_line(line_c, y))
+			for d in deletable:
+				order[i][1][3].remove(d)
+						
+						
+	
+	return status_queue, intersections
+'''
+Open the input file
+'''
+def load_set(filename):
+	print(f"we use file: {filename}")
+	# Opening JSON file
+	f = open(filename)
+	# returns JSON object as
+	# a dictionary
+	global nodes_x    
+	global nodes_y    
+	global edge_source
+	global edge_dest  
+	
+	data = json.load(f)
+	 
+	# Iterating through the json
+	# list
+	for d in data:
+		print(data[d])
+	nodes_x     = data["x"]
+	nodes_y     = data["y"]
+	edge_source = data["edge_i"]
+	edge_dest   = data["edge_j"]
+	
+	f.close
+
+
+'''
+Hnadles all types of events
+events with a leading 0 are start or end events, others are intersection events
+'''					
+def handle_event(e_list, next_event, s_queue, next_partition, current_partition):
+	event_list = e_list
+	status_queue = s_queue
+	if next_event[1][0] == 0:
+		for line in next_event[1][2]:
+			status_queue = insert_in_bbst(status_queue,val = line[0][0], data = (0,0,[],[line]))
+			event_list = insert_in_bbst(event_list,val = line[1][1], data = (0,get_coords(nodes_y.index(line[1][1])),[],[line]))
+		if status_queue != None:	
+			status_queue = update_sq(next_event[1][1][1],status_queue)
+			
+			for line in next_event[1][3]:
+				if status_queue == None:
+					break;
+				if status_queue.exists(val=calc_line(line, next_event[1][1][1])):
+					if line in status_queue.get_data(val=calc_line(line, next_event[1][1][1]))[3]:
+						partitions[current_partition].append(line)
+						if status_queue.can_delete(calc_line(line, next_event[1][1][1]), line) == True:
+							status_queue = status_queue.delete(calc_line(line, next_event[1][1][1]))
+				
+	
+	
+	#ends with rebalancing the status queue
+	if status_queue != None:
+		#status_queue = update_sq(next_event[1][1][1],status_queue) #maybe not needed now
+		status_queue, intersections = check_intersections(status_queue,next_event[1][1][1])
+		for i in intersections:
+			next_partition = insert_in_bbst(next_partition, val = i[1][0][1], data=(0,i[1][0],[i[1]],[]))
+			intersection_point = line_intersection(i[0],i[1])
+			event_list = insert_in_bbst(event_list, val = intersection_point[1], data = (1,intersection_point,[],[]))
+			if event_list.exists(i[1][1][1]) == True:
+				if event_list.can_delete(i[1][1][1], i[1]) == True:
+					event_list = event_list.delete(i[1][1][1])
+	event_list = balance_bbst(event_list)
+	return status_queue, event_list, next_partition
+	
+	
 	
 	
 def main(args):
+	if len(sys.argv) == 1:
+		load_set("rvisp3499.instance.json")
+	else:
+		load_set(sys.argv[1])
+		
+	visualize = True if "-v" in sys.argv else False
 	'''
 	1. preprocess the edges for a horizontal sweep
 	if the destination is higher than the source, swap the elements.
@@ -391,26 +396,27 @@ def main(args):
 	'''
 	print("start")
 	status_queue = None
+	current_partition = 0;
 	event_counter = 0
+	next_partition = None
+	partitions.append([])
 	while event_list != None:
-		print(f"event {event_counter} of at most {len(nodes_x)}",end='\r')
+		print(f"working on partition {current_partition} event {event_counter}",end='\r')
 		event_counter += 1
 		next_event = event_list.get_max();
-		#shows the next event:
-		#print("next event is:\t" ,next_event[0], next_event[1]); #debug print to check the next event
-		event_list, status_queue = handle_event(event_list,next_event[1],status_queue,next_event[0])
+		status_queue, event_list, next_partition = handle_event(event_list,next_event,status_queue,next_partition, current_partition)
 		event_list = event_list.delete(next_event[0])
-		if status_queue != None:
-			event_history.append(next_event[0])
-			#show_statusqueue(status_queue, v=True, h_line = next_event[0])
-	s_control.sort()		
-	control.sort()	
-	e_control.sort()		
-			
-	print("start event controle: ", s_control)
-	print("statusqueue controle: ", control)
-	print("end event   controle: ", e_control)
+		
+		if status_queue != None and visualize == True:
+			show_statusqueue(status_queue, visualize, next_event[1][1][1])
+		if event_list == None and next_partition != None:
+			current_partition += 1
+			event_counter = 0
+			partitions.append([])
+			event_list = balance_bbst(next_partition);
+			next_partition = None
 	show_partitions()
+	check_partitions();
 	
 	
 	
