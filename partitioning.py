@@ -40,7 +40,7 @@ partitions = []
 '''
 This function shows all partitions in one figure, different colors for different partitions for visibility
 '''	
-def show_partitions():
+def show_partitions(name):
 	fig, ax = plt.subplots()
 	
 	for p in partitions:
@@ -53,6 +53,7 @@ def show_partitions():
 	plt.xlim([min(nodes_x),max(nodes_x)])
 	ax.autoscale()
 	ax.margins(0.1)
+	plt.savefig(f"output/{name}.png")
 	plt.show()	
 '''
 show just one partition, or list of lines
@@ -364,9 +365,11 @@ def handle_event(e_list, next_event, s_queue, next_partition, current_partition)
 	
 	
 def main(args):
+	f_name = "p1.json"
 	if len(sys.argv) == 1:
-		load_set("rvisp3499.instance.json")
+		load_set("p1.json")
 	else:
+		f_name = sys.argv[1]
 		load_set(sys.argv[1])
 		
 	visualize = True if "-v" in sys.argv else False
@@ -415,7 +418,7 @@ def main(args):
 			partitions.append([])
 			event_list = balance_bbst(next_partition);
 			next_partition = None
-	show_partitions()
+	show_partitions(f_name)
 	check_partitions();
 	
 	
